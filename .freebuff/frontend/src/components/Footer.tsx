@@ -14,7 +14,7 @@ export default function Footer() {
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
               </span>
               <span className="text-base font-bold text-brand-900">
-                Saksham<span className="text-saffron-500">AI</span>
+                Scheme<span className="text-saffron-500">Up</span>
               </span>
             </div>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-600">{t('footer.about')}</p>
@@ -46,11 +46,11 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">SakshamAI</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Scheme Up</h3>
             <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">
               {t('footer.demoNote')}
             </p>
-            <p className="mt-3 text-xs text-slate-400">© {new Date().getFullYear()} SakshamAI. {t('footer.rights')}</p>
+            <p className="mt-3 text-xs text-slate-400">© {new Date().getFullYear()} Scheme Up. {t('footer.rights')}</p>
           </div>
         </div>
       </div>

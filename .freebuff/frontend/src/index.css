@@ -6,9 +6,16 @@
   html {
     @apply antialiased;
     -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-slate-50 text-slate-800 font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight;
   }
   button {
     @apply cursor-pointer;
@@ -17,25 +24,28 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
   }
   .btn-primary {
-    @apply btn bg-brand-700 text-white hover:bg-brand-800 px-5 py-3 text-base;
+    @apply btn bg-brand-700 text-white shadow-sm hover:bg-brand-800 hover:shadow px-5 py-3 text-base;
   }
   .btn-secondary {
     @apply btn bg-white text-brand-800 border-2 border-brand-200 hover:border-brand-400 hover:bg-brand-50 px-5 py-3 text-base;
   }
   .btn-saffron {
-    @apply btn bg-saffron-500 text-white hover:bg-saffron-600 px-5 py-3 text-base;
+    @apply btn bg-saffron-500 text-white shadow-sm hover:bg-saffron-600 hover:shadow px-5 py-3 text-base;
   }
   .btn-ghost {
     @apply btn text-brand-800 hover:bg-brand-50 px-4 py-2 text-sm;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white shadow-sm hover:bg-red-700 px-5 py-3 text-base;
   }
   .btn-sm {
     @apply px-3 py-1.5 text-sm;
   }
   .input {
-    @apply w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-slate-100;
+    @apply w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-slate-100;
   }
   .label {
     @apply mb-1.5 block text-sm font-medium text-slate-700;
@@ -63,6 +73,18 @@
   }
   .section-title {
     @apply text-2xl font-bold text-slate-900 md:text-3xl;
+  }
+  .kpi-value {
+    @apply text-2xl font-extrabold tracking-tight text-slate-900 tabular-nums;
+  }
+  .kpi-label {
+    @apply text-xs font-medium text-slate-500;
+  }
+  .th {
+    @apply px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-400;
+  }
+  .td {
+    @apply px-3 py-2.5 align-middle text-sm;
   }
 }
 
@@ -96,8 +118,48 @@
   animation: fadeUp 0.35s ease-out both;
 }
 
+/* Skeleton shimmer for loading placeholders */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* Chat markdown-lite elements */
+.chat-md code {
+  background: rgba(15, 23, 42, 0.07);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.85em;
+}
+
+/* Respect users who prefer reduced motion: keep content visible, drop movement.
+   Framer Motion's MotionConfig (reducedMotion="user") handles JS animations;
+   this media query covers CSS animations and transitions. */
 @media (prefers-reduced-motion: reduce) {
-  .fade-up {
+  html {
+    scroll-behavior: auto;
+  }
+  .fade-up,
+  .skeleton {
     animation: none;
+  }
+  .skeleton {
+    background: #e2e8f0;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

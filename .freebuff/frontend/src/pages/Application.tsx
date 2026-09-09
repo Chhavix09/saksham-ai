@@ -103,7 +103,9 @@ export default function Application() {
       case 3:
         return documents.length > 0
       case 4:
-        return Boolean(partnerId)
+        // Partner selection is optional: the application can still be recorded
+        // and the Channel Partner chosen later.
+        return true
       default:
         return true
     }
@@ -261,7 +263,10 @@ export default function Application() {
               ) : partnersQuery.isError ? (
                 <ErrorState message={t('err.generic')} onRetry={() => partnersQuery.refetch()} />
               ) : (partnersQuery.data?.partners ?? []).length === 0 ? (
-                <p className="text-sm text-slate-500">{t('part.noPartners')}</p>
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-500">{t('part.noPartners')}</p>
+                  <p className="rounded-xl bg-brand-50 p-3 text-sm text-brand-900">{t('appl.partnerOptional')}</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {partnersQuery.data!.partners.slice(0, 5).map((partner: Partner, index) => (

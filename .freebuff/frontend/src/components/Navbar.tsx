@@ -23,12 +23,12 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-        <Link to="/" className="flex items-center gap-2" aria-label="SakshamAI home">
+        <Link to="/" className="flex items-center gap-2" aria-label="Scheme Up home">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white">
             <Sparkles className="h-5 w-5" aria-hidden="true" />
           </span>
           <span className="text-lg font-bold text-brand-900">
-            Saksham<span className="text-saffron-500">AI</span>
+            Scheme<span className="text-saffron-500">Up</span>
           </span>
         </Link>
 

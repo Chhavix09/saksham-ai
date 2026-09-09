@@ -167,10 +167,16 @@ export interface DashboardData {
 
 export interface AnalyticsData {
   total_users: number
+  active_users: number
+  new_users_week: number
+  total_schemes: number
+  active_schemes: number
   total_recommendations: number
   total_applications: number
   applications_submitted: number
+  applications_approved: number
   conversion_rate: number
+  ai_chats_week: number
   top_schemes: Array<{ scheme_name: string; count: number }>
   top_districts: Array<{ district: string; count: number }>
   partner_utilization: Array<{ name: string; utilization: number; status: string }>

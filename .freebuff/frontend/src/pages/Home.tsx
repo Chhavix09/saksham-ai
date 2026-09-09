@@ -115,7 +115,7 @@ export default function Home() {
         </ol>
       </section>
 
-      {/* Why SakshamAI */}
+      {/* Why Scheme Up */}
       <section className="bg-white py-14">
         <div className="mx-auto max-w-6xl px-4">
           <motion.div {...fadeUp} className="text-center">

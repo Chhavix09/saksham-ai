@@ -3,6 +3,7 @@ import { Outlet } from '@tanstack/react-router'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import BottomNav from '@/components/BottomNav'
+import ChatAssistant from '@/components/ChatAssistant'
 import { Loader2 } from 'lucide-react'
 
 function PageLoader() {
@@ -24,6 +25,7 @@ export default function RootLayout() {
       </main>
       <Footer />
       <BottomNav />
+      <ChatAssistant />
     </div>
   )
 }
