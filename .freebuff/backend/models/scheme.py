@@ -18,6 +18,24 @@ class Scheme(Base):
     __tablename__ = "schemes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    scheme_code: Mapped[str | None] = mapped_column(String(100), unique=True, index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    sponsoring_body: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    target_categories: Mapped[list] = mapped_column(JSON, default=list)
+    min_income: Mapped[float] = mapped_column(Float, default=0.0)
+    max_income: Mapped[float] = mapped_column(Float, default=0.0)
+    min_project_cost: Mapped[float] = mapped_column(Float, default=0.0)
+    max_project_cost: Mapped[float] = mapped_column(Float, default=0.0)
+    loan_percentage: Mapped[float] = mapped_column(Float, default=100.0)
+    interest_rate_min: Mapped[float] = mapped_column(Float, default=0.0)
+    interest_rate_max: Mapped[float] = mapped_column(Float, default=0.0)
+    tenure_years: Mapped[float] = mapped_column(Float, default=0.0)
+    eligible_activities: Mapped[list] = mapped_column(JSON, default=list)
+    application_mode: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    application_url: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    extra_attributes: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    # Legacy display fields remain populated as derived values for existing API clients.
     scheme_name: Mapped[str] = mapped_column(String(160), nullable=False)
     category: Mapped[str] = mapped_column(String(40), index=True)  # micro_finance | term_loan | educational | other
     description: Mapped[str] = mapped_column(String(1000), default="")
@@ -47,7 +65,7 @@ class Scheme(Base):
     )
 
     def __repr__(self) -> str:  # pragma: no cover
-        return f"<Scheme {self.id} {self.scheme_name}>"
+        return f"<Scheme {self.id} {self.name or self.scheme_name}>"
 
 
 class Partner(Base):

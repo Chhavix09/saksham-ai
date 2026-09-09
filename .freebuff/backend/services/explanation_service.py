@@ -12,12 +12,12 @@ def fmt_inr(value: int | float) -> str:
 
 def _income_explanation(scheme: dict, income: int, score: float, matched: bool, partial: bool) -> dict:
     if not matched and not partial:
-        if scheme.get("maximum_income") and income > scheme["maximum_income"]:
-            text = f"Your annual family income of {fmt_inr(income)} is above this scheme's income limit of {fmt_inr(scheme['maximum_income'])}."
+        if scheme.get("max_income") and income > scheme["max_income"]:
+            text = f"Your annual family income of {fmt_inr(income)} is above this scheme's income limit of {fmt_inr(scheme['max_income'])}."
         else:
             text = f"Your annual family income of {fmt_inr(income)} does not meet this scheme's income criteria."
     elif partial:
-        text = f"Your annual family income of {fmt_inr(income)} is close to this scheme's income limit of {fmt_inr(scheme.get('maximum_income') or 0)}."
+        text = f"Your annual family income of {fmt_inr(income)} is close to this scheme's income limit of {fmt_inr(scheme.get('max_income') or 0)}."
     else:
         text = f"Your annual family income of {fmt_inr(income)} falls within the scheme's configured eligibility range."
     return {"factor": "income", "label": "Income Match", "text": text, "matched": matched, "partial": partial, "score": round(score, 1)}
@@ -30,22 +30,33 @@ def _purpose_explanation(scheme: dict, purpose: str, score: float, matched: bool
         text = "Your purpose partially matches this scheme's focus area."
     else:
         text = f"Your purpose ({purpose.replace('_', ' ').title()}) is not covered by this scheme."
-    return {"factor": "purpose", "label": "Purpose Match", "text": text, "matched": matched, "partial": partial, "score": round(score, 1)}
+    return {"factor": "activity", "label": "Activity Match", "text": text, "matched": matched, "partial": partial, "score": round(score, 1)}
+
+
+def _category_explanation(scheme: dict, category: str | None, score: float, matched: bool, partial: bool) -> dict:
+    categories = ", ".join(scheme.get("target_categories") or [])
+    if not category:
+        text = f"Select your category to verify this scheme's target groups ({categories})."
+    elif matched:
+        text = f"Your category ({category}) is included in this scheme's target groups."
+    else:
+        text = f"Your category ({category}) is not listed among this scheme's target groups ({categories})."
+    return {"factor": "category", "label": "Category Match", "text": text, "matched": matched, "partial": partial, "score": round(score, 1)}
 
 
 def _loan_explanation(scheme: dict, need: int, score: float, matched: bool, partial: bool) -> dict:
     if not matched and not partial:
         text = (
             f"Your estimated financing need of {fmt_inr(need)} exceeds the configured maximum of "
-            f"{fmt_inr(scheme['maximum_loan'])} for this scheme."
+            f"{fmt_inr(scheme['max_project_cost'])} for this scheme."
         )
-    elif partial and need > scheme["maximum_loan"]:
+    elif partial and need > scheme["max_project_cost"]:
         text = (
             f"Your estimated financing need of {fmt_inr(need)} is slightly above this scheme's maximum of "
-            f"{fmt_inr(scheme['maximum_loan'])}."
+            f"{fmt_inr(scheme['max_project_cost'])}."
         )
     elif partial:
-        text = f"Your estimated financing need of {fmt_inr(need)} is below this scheme's typical minimum of {fmt_inr(scheme.get('minimum_loan') or 0)}."
+        text = f"Your estimated financing need of {fmt_inr(need)} is below this scheme's typical minimum of {fmt_inr(scheme.get('min_project_cost') or 0)}."
     else:
         text = f"Your estimated financing need of {fmt_inr(need)} falls within the scheme's configured loan limit."
     return {"factor": "loan_amount", "label": "Loan Amount Match", "text": text, "matched": matched, "partial": partial, "score": round(score, 1)}
@@ -96,10 +107,13 @@ def build_explanation(
     education_type: str | None,
     state: str | None,
     partner_count: int,
+    category: str | None = None,
+    activity: str | None = None,
 ) -> list[dict]:
     return [
         _income_explanation(scheme, income, factors["income"]["score"], factors["income"]["matched"], factors["income"]["partial"]),
-        _purpose_explanation(scheme, purpose, factors["purpose"]["score"], factors["purpose"]["matched"], factors["purpose"]["partial"]),
+        _category_explanation(scheme, category, factors["category"]["score"], factors["category"]["matched"], factors["category"]["partial"]),
+        _purpose_explanation(scheme, activity or purpose, factors["activity"]["score"], factors["activity"]["matched"], factors["activity"]["partial"]),
         _loan_explanation(scheme, need, factors["loan_amount"]["score"], factors["loan_amount"]["matched"], factors["loan_amount"]["partial"]),
         _project_explanation(scheme, project_cost, factors["project_cost"]["score"], factors["project_cost"]["matched"], factors["project_cost"]["partial"]),
         _education_explanation(scheme, purpose, education_type, factors["education"]["score"], factors["education"]["matched"], factors["education"]["partial"]),

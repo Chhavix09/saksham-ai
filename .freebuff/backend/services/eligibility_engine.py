@@ -11,11 +11,12 @@ Weights are configurable from the backend (stored in the app_config table).
 from dataclasses import dataclass, field
 
 DEFAULT_WEIGHTS = {
-    "income": 25,
-    "purpose": 25,
+    "income": 20,
+    "category": 15,
+    "activity": 20,
     "loan_amount": 20,
     "project_cost": 15,
-    "education": 10,
+    "education": 5,
     "location": 5,
 }
 
@@ -46,9 +47,9 @@ class SchemeResult:
     notes: list = field(default_factory=list)
 
 
-def score_income(scheme: dict, income: int) -> FactorResult:
-    lo = scheme.get("minimum_income") or 0
-    hi = scheme.get("maximum_income")
+def score_income(scheme: dict, income: float) -> FactorResult:
+    lo = scheme.get("min_income", 0) or 0
+    hi = scheme.get("max_income")
     if income < lo:
         return FactorResult(score=0, matched=False)
     if hi is not None:
@@ -60,18 +61,34 @@ def score_income(scheme: dict, income: int) -> FactorResult:
     return FactorResult(score=100, matched=True)
 
 
-def score_purpose(scheme: dict, purpose: str, education_type: str | None) -> FactorResult:
-    purposes = scheme.get("eligible_purposes") or []
-    if purpose == "education":
-        types = scheme.get("eligible_education_types") or []
-        if scheme.get("category") != "educational" or "education" not in purposes:
-            return FactorResult(score=0, matched=False)
-        if not education_type:
-            return FactorResult(score=75, matched=True, partial=True)
-        if education_type in types:
-            return FactorResult(score=100, matched=True)
-        return FactorResult(score=0, matched=False)
-    if purpose in purposes:
+def score_category(scheme: dict, category: str | None) -> FactorResult:
+    categories = {str(value).upper() for value in scheme.get("target_categories") or []}
+    if not category:
+        return FactorResult(score=60, matched=True, partial=True)
+    if str(category).upper() in categories:
+        return FactorResult(score=100, matched=True)
+    if "GENERAL" in categories and str(category).upper() in {"GEN", "GENERAL"}:
+        return FactorResult(score=100, matched=True)
+    return FactorResult(score=0, matched=False)
+
+
+def score_activity(scheme: dict, activity: str | None) -> FactorResult:
+    activities = {str(value).upper() for value in scheme.get("eligible_activities") or []}
+    if not activity:
+        return FactorResult(score=60, matched=True, partial=True)
+    normalized = str(activity).upper().replace(" ", "_")
+    if normalized in activities:
+        return FactorResult(score=100, matched=True)
+    aliases = {
+        "START_BUSINESS": {"MICRO_BUSINESS", "MICRO_ENTERPRISE", "INCOME_GENERATING_ACTIVITIES", "SERVICES", "TRADING"},
+        "EXPAND_BUSINESS": {"MANUFACTURING", "SERVICES", "TRADING", "SMALL_SCALE_INDUSTRY"},
+        "SMALL_ENTERPRISE": {"MICRO_ENTERPRISE", "SMALL_SCALE_INDUSTRY", "MICRO_MANUFACTURING"},
+        "AGRICULTURE": {"AGRI_ALLIED", "AGRI_BASED_MICRO_UNITS", "AGRICULTURE"},
+        "VEHICLE_EQUIPMENT": {"TRANSPORT", "CONSTRUCTION", "MANUFACTURING"},
+        "OTHER": {"INCOME_GENERATING_ACTIVITIES", "SERVICES", "TRADING"},
+        "EDUCATION": {"HIGHER_EDUCATION", "PROFESSIONAL_COURSES", "TECHNICAL_COURSES"},
+    }
+    if activities.intersection(aliases.get(normalized, set())):
         return FactorResult(score=100, matched=True)
     return FactorResult(score=0, matched=False)
 
@@ -86,47 +103,38 @@ def estimate_loan_need(required_loan, own_contribution, project_cost, max_loan: 
     return 0
 
 
-def score_loan_amount(scheme: dict, need: int) -> FactorResult:
-    max_loan = scheme.get("maximum_loan") or 0
-    min_loan = scheme.get("minimum_loan") or 0
+def score_loan_amount(scheme: dict, need: float) -> FactorResult:
+    min_loan = scheme.get("min_project_cost") or 0
+    max_loan = scheme.get("max_project_cost") or 0
     if need <= 0:
         return FactorResult(score=70, matched=True, partial=True)
     if need <= max_loan:
         if need >= min_loan:
             return FactorResult(score=100, matched=True)
         return FactorResult(score=65, matched=True, partial=True)
-    if need <= max_loan * 1.2:
+    if need <= max_loan * 1.15:
         return FactorResult(score=55, matched=False, partial=True)
     return FactorResult(score=0, matched=False)
 
 
-def score_project_cost(scheme: dict, project_cost: int) -> FactorResult:
-    max_loan = scheme.get("maximum_loan") or 1
+def score_project_cost(scheme: dict, project_cost: float) -> FactorResult:
     if project_cost <= 0:
         return FactorResult(score=60, matched=True, partial=True)
-    ratio = project_cost / max_loan
-    windows = PROJECT_WINDOWS.get(scheme.get("category", "other"), PROJECT_WINDOWS["other"])
-    full_lo, full_hi = windows[0]
-    if full_lo <= ratio <= full_hi:
+    minimum = scheme.get("min_project_cost") or 0
+    maximum = scheme.get("max_project_cost") or 0
+    if minimum <= project_cost <= maximum:
         return FactorResult(score=100, matched=True)
-    for lo, hi in windows[1:]:
-        if lo <= ratio <= hi:
-            return FactorResult(score=60, matched=True, partial=True)
-    return FactorResult(score=35, matched=False, partial=True)
+    boundary = minimum if project_cost < minimum else maximum
+    if boundary and abs(project_cost - boundary) <= boundary * 0.15:
+        return FactorResult(score=55, matched=False, partial=True)
+    return FactorResult(score=0, matched=False)
 
 
 def score_education(scheme: dict, purpose: str, education_type: str | None) -> FactorResult:
     if purpose != "education":
         # Education-specific compatibility is not applicable -> neutral full score
         return FactorResult(score=100, matched=True)
-    types = scheme.get("eligible_education_types") or []
-    if scheme.get("category") != "educational":
-        return FactorResult(score=0, matched=False)
-    if not education_type:
-        return FactorResult(score=75, matched=True, partial=True)
-    if education_type in types:
-        return FactorResult(score=100, matched=True)
-    return FactorResult(score=0, matched=False)
+    return score_activity(scheme, "EDUCATION")
 
 
 def score_location(partner_count: int, has_location: bool) -> FactorResult:
@@ -141,6 +149,8 @@ def evaluate_scheme(scheme: dict, profile: dict, partner_count: int) -> SchemeRe
     """Evaluate one scheme against a user profile. Returns factor scores and eligibility."""
     income = profile.get("income", 0)
     purpose = profile.get("purpose", "other")
+    category = profile.get("category")
+    activity = profile.get("activity") or purpose
     project_cost = profile.get("project_cost", 0)
     education_type = profile.get("education_type")
     required_loan = profile.get("required_loan")
@@ -151,7 +161,8 @@ def evaluate_scheme(scheme: dict, profile: dict, partner_count: int) -> SchemeRe
 
     factors = {
         "income": score_income(scheme, income),
-        "purpose": score_purpose(scheme, purpose, education_type),
+        "category": score_category(scheme, category),
+        "activity": score_activity(scheme, activity),
         "loan_amount": score_loan_amount(scheme, need),
         "project_cost": score_project_cost(scheme, project_cost),
         "education": score_education(scheme, purpose, education_type),
@@ -159,15 +170,15 @@ def evaluate_scheme(scheme: dict, profile: dict, partner_count: int) -> SchemeRe
     }
 
     weights = profile.get("weights", DEFAULT_WEIGHTS)
-    total_weight = sum(weights.get(k, 0) for k in factors)
+    total_weight = sum(weights.get(k, DEFAULT_WEIGHTS.get(k, 0)) for k in factors)
     if total_weight <= 0:
         total_weight = sum(DEFAULT_WEIGHTS.values())
 
-    weighted = sum(factors[k].score * weights.get(k, 0) for k in factors) / total_weight
+    weighted = sum(factors[k].score * weights.get(k, DEFAULT_WEIGHTS.get(k, 0)) for k in factors) / total_weight
 
     hard_fail = any(
         not f.matched and not f.partial for k, f in factors.items()
-        if k in ("income", "purpose", "loan_amount", "education", "location")
+        if k in ("income", "category", "activity", "loan_amount", "project_cost", "education", "location")
     )
     # project_cost is a soft factor: an odd-sized project never hard-excludes a scheme,
     # but a zero project cost with no loan need should not be recommended.
@@ -184,8 +195,8 @@ def evaluate_scheme(scheme: dict, profile: dict, partner_count: int) -> SchemeRe
         for k, f in factors.items() if not f.matched and not f.partial
     ]
     notes = []
-    if factors["loan_amount"].partial and need > (scheme.get("maximum_loan") or 0):
-        notes.append("Consider reducing the loan amount to fit within the scheme's maximum.")
+    if factors["loan_amount"].partial and need > (scheme.get("max_project_cost") or 0):
+        notes.append("Consider reducing the loan amount to fit within the scheme's maximum project cost.")
     if factors["income"].partial:
         notes.append("Your income is close to the scheme's limit — please verify with the Channel Partner.")
 

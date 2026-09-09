@@ -36,6 +36,22 @@ PURPOSE_LABELS = {
 def _scheme_dict(scheme: Scheme) -> dict:
     return {
         "id": scheme.id,
+        "scheme_code": scheme.scheme_code,
+        "name": scheme.name,
+        "sponsoring_body": scheme.sponsoring_body,
+        "target_categories": scheme.target_categories or [],
+        "min_income": scheme.min_income,
+        "max_income": scheme.max_income,
+        "min_project_cost": scheme.min_project_cost,
+        "max_project_cost": scheme.max_project_cost,
+        "loan_percentage": scheme.loan_percentage,
+        "interest_rate_min": scheme.interest_rate_min,
+        "interest_rate_max": scheme.interest_rate_max,
+        "tenure_years": scheme.tenure_years,
+        "eligible_activities": scheme.eligible_activities or [],
+        "application_mode": scheme.application_mode,
+        "application_url": scheme.application_url,
+        "extra_attributes": scheme.extra_attributes or {},
         "scheme_name": scheme.scheme_name,
         "category": scheme.category,
         "description": scheme.description,
@@ -136,6 +152,8 @@ def generate_recommendation(
             profile.get("education_type"),
             state,
             recommended.partner_count,  # type: ignore[attr-defined]
+            profile.get("category"),
+            profile.get("activity") or purpose,
         )
         next_steps = explanation_service.build_next_steps(
             recommended.scheme, has_partners=recommended.partner_count > 0  # type: ignore[attr-defined]
@@ -161,6 +179,8 @@ def generate_recommendation(
             profile.get("education_type"),
             state,
             alt.partner_count,  # type: ignore[attr-defined]
+            profile.get("category"),
+            profile.get("activity") or purpose,
         )
         alternative_payloads.append(
             {

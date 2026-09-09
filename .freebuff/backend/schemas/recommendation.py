@@ -27,6 +27,7 @@ class RecommendationIn(BaseModel):
     income: int = Field(default=0, ge=0)
     project_cost: int = Field(default=0, ge=0)
     purpose: str = "business"
+    activity: str | None = None
     required_loan: int | None = Field(default=None, ge=0)
     own_contribution: int | None = Field(default=None, ge=0)
     education_status: str | None = None

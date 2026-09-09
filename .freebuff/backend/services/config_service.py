@@ -9,11 +9,12 @@ from sqlalchemy.orm import Session
 from models.activity import AppConfig
 
 RECOMMENDATION_WEIGHTS = {
-    "income": 25,
-    "purpose": 25,
+    "income": 20,
+    "category": 15,
+    "activity": 20,
     "loan_amount": 20,
     "project_cost": 15,
-    "education": 10,
+    "education": 5,
     "location": 5,
 }
 

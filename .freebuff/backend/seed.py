@@ -13,149 +13,8 @@ from models.scheme import Partner, Scheme
 from models.user import User
 from services.config_service import seed_default_config
 from services.recommendation_engine import generate_recommendation
+from services.scheme_ingestor import load_schemes_from_json
 from utils.security import hash_password
-
-
-def _scheme(db: Session, **kw) -> Scheme:
-    existing = db.query(Scheme).filter(Scheme.scheme_name == kw["scheme_name"]).first()
-    if existing:
-        return existing
-    scheme = Scheme(**kw, is_demo=True)
-    db.add(scheme)
-    return scheme
-
-
-def seed_schemes(db: Session) -> list[Scheme]:
-    schemes = [
-        _scheme(
-            db,
-            scheme_name="Micro Finance Scheme",
-            category="micro_finance",
-            description=(
-                "For smaller income-generating projects — kirana stores, tailoring units, "
-                "agri-allied activity, artisan work and similar micro enterprises."
-            ),
-            minimum_income=None,
-            maximum_income=300000,
-            minimum_loan=10000,
-            maximum_loan=140000,
-            interest_rate=7.0,
-            margin_percentage=5.0,
-            moratorium_months=3,
-            maximum_tenure_months=36,
-            eligible_purposes=["start_business", "small_enterprise", "agriculture", "other"],
-            eligible_education_types=[],
-            eligibility_rules={"note": "Primarily for lower-income households and micro enterprises."},
-            required_documents=[
-                "identity_proof", "address_proof", "income_certificate", "project_documents", "bank_details",
-            ],
-            fund_utilization=62.0,
-        ),
-        _scheme(
-            db,
-            scheme_name="Term Loan Scheme",
-            category="term_loan",
-            description=(
-                "For larger income-generating projects and business expansion — machinery, "
-                "working capital, infrastructure and substantial enterprise financing."
-            ),
-            minimum_income=None,
-            maximum_income=None,
-            minimum_loan=100000,
-            maximum_loan=5000000,
-            interest_rate=7.0,
-            margin_percentage=10.0,
-            moratorium_months=6,
-            maximum_tenure_months=60,
-            eligible_purposes=[
-                "start_business", "expand_business", "agriculture", "small_enterprise", "vehicle_equipment",
-            ],
-            eligible_education_types=[],
-            eligibility_rules={"note": "Project should demonstrate income-generating capacity."},
-            required_documents=[
-                "identity_proof", "address_proof", "income_certificate", "project_documents",
-                "bank_details", "business_registration",
-            ],
-            fund_utilization=55.0,
-        ),
-        _scheme(
-            db,
-            scheme_name="Educational Loan Scheme",
-            category="educational",
-            description=(
-                "For eligible higher-education expenses — tuition, course fees, study materials "
-                "and related education costs for recognized courses and institutions."
-            ),
-            minimum_income=None,
-            maximum_income=None,
-            minimum_loan=50000,
-            maximum_loan=2000000,
-            interest_rate=6.5,
-            margin_percentage=0.0,
-            moratorium_months=12,
-            maximum_tenure_months=120,
-            eligible_purposes=["education"],
-            eligible_education_types=[
-                "undergraduate", "postgraduate", "professional", "vocational", "engineering", "medical", "other",
-            ],
-            eligibility_rules={"note": "Course must be from a recognized institution."},
-            required_documents=[
-                "identity_proof", "address_proof", "income_certificate", "education_documents", "bank_details",
-            ],
-            fund_utilization=48.0,
-        ),
-        _scheme(
-            db,
-            scheme_name="Agricultural & Allied Activity Scheme",
-            category="term_loan",
-            description=(
-                "For agriculture and allied activities — farm equipment, irrigation, dairy, "
-                "poultry, fishery and agri-processing units."
-            ),
-            minimum_income=None,
-            maximum_income=600000,
-            minimum_loan=50000,
-            maximum_loan=1000000,
-            interest_rate=6.0,
-            margin_percentage=5.0,
-            moratorium_months=6,
-            maximum_tenure_months=60,
-            eligible_purposes=["agriculture", "start_business", "expand_business"],
-            eligible_education_types=[],
-            eligibility_rules={"note": "Activity must be agriculture/allied in nature."},
-            required_documents=[
-                "identity_proof", "address_proof", "income_certificate", "project_documents", "bank_details",
-            ],
-            fund_utilization=70.0,
-        ),
-        _scheme(
-            db,
-            scheme_name="Vehicle & Equipment Finance Scheme",
-            category="term_loan",
-            description=(
-                "For commercial vehicles, machinery and equipment used for income-generating "
-                "activity such as transport, construction and manufacturing."
-            ),
-            minimum_income=None,
-            maximum_income=None,
-            minimum_loan=100000,
-            maximum_loan=2000000,
-            interest_rate=7.5,
-            margin_percentage=15.0,
-            moratorium_months=3,
-            maximum_tenure_months=48,
-            eligible_purposes=["vehicle_equipment", "expand_business", "small_enterprise"],
-            eligible_education_types=[],
-            eligibility_rules={"note": "Vehicle/equipment must be for commercial use."},
-            required_documents=[
-                "identity_proof", "address_proof", "income_certificate", "project_documents",
-                "bank_details", "business_registration",
-            ],
-            fund_utilization=58.0,
-        ),
-    ]
-    db.commit()
-    return schemes
 
 
 _PARTNERS = [
@@ -264,6 +123,8 @@ def seed_activity(db: Session, users: dict, schemes: list[Scheme], partners: lis
                 "income": 350000,
                 "project_cost": 1000000,
                 "purpose": "start_business",
+                "category": "SC",
+                "activity": "MANUFACTURING",
                 "education_status": "graduate",
                 "location": {"state": "Gujarat", "district": "Ahmedabad"},
                 "required_loan": 900000,
@@ -301,7 +162,7 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         seed_default_config(db)
-        schemes = seed_schemes(db)
+        schemes = load_schemes_from_json(db)
         partners = seed_partners(db, schemes)
         users = seed_users(db)
         seed_activity(db, users, schemes, partners)

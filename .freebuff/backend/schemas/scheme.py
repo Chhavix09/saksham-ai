@@ -27,6 +27,21 @@ class SchemeIn(BaseModel):
 
 class SchemeOut(ORMModel):
     id: int
+    scheme_code: str | None = None
+    name: str
+    sponsoring_body: str
+    target_categories: list
+    min_income: float
+    max_income: float
+    min_project_cost: float
+    max_project_cost: float
+    loan_percentage: float
+    interest_rate_min: float
+    interest_rate_max: float
+    tenure_years: float
+    application_mode: str
+    application_url: str
+    extra_attributes: dict = {}
     scheme_name: str
     category: str
     description: str
