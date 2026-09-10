@@ -97,6 +97,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider')
+  if (!ctx) {
+    return {
+      user: null,
+      loading: false,
+      login: async () => {
+        throw new Error('AuthProvider is not mounted')
+      },
+      register: async () => {
+        throw new Error('AuthProvider is not mounted')
+      },
+      logout: () => undefined,
+      refreshUser: async () => undefined,
+      setUser: () => undefined,
+    }
+  }
   return ctx
 }

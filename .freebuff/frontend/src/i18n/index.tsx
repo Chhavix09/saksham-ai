@@ -98,6 +98,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useT(): I18nContextValue {
   const ctx = useContext(I18nContext)
-  if (!ctx) throw new Error('useT must be used inside LanguageProvider')
+  if (!ctx) {
+    const fallbackT = (key: string, vars?: Record<string, string | number>) => {
+      let text = dicts.en[key] ?? key
+      if (vars) {
+        for (const [k, v] of Object.entries(vars)) {
+          text = text.split(`{${k}}`).join(String(v))
+        }
+      }
+      return text
+    }
+
+    return {
+      lang: 'en',
+      setLang: () => undefined,
+      t: fallbackT,
+      languageNames: LANGUAGE_NAMES,
+    }
+  }
   return ctx
 }

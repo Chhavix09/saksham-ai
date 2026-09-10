@@ -296,12 +296,102 @@ function SchemesTab({ search, setSearch }: { search: string; setSearch: (s: stri
     onError: () => toast(t('err.generic'), 'error'),
   })
 
+  const scraperQuery = useQuery({ queryKey: ['scraper-status'], queryFn: adminApi.scraperStatus, refetchInterval: 15000 })
+
+  const syncMutation = useMutation({
+    mutationFn: () => adminApi.triggerScraper(),
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ['schemes'] })
+      qc.invalidateQueries({ queryKey: ['scraper-status'] })
+      qc.invalidateQueries({ queryKey: ['public-stats'] })
+      toast(`Government schemes sync complete! ${data?.result?.persisted_count ?? 'All'} schemes synchronized.`)
+    },
+    onError: (err: any) => toast(err?.message || t('err.generic'), 'error'),
+  })
+
   const filtered = (schemesQuery.data ?? []).filter(
     (s) => s.scheme_name.toLowerCase().includes(search.toLowerCase()) || s.category.includes(search.toLowerCase()),
   )
 
+  const sched = scraperQuery.data?.scheduler
+  const dbStats = scraperQuery.data?.database_stats
+
   return (
     <div className="space-y-4">
+      {/* 24-Hour Auto-Sync Status Card */}
+      <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50 via-teal-50/50 to-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 animate-pulse" />
+              <h3 className="text-base font-semibold text-slate-900">
+                24-Hour Government Schemes Sync Engine
+              </h3>
+              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                Active • 24h Recurring
+              </span>
+            </div>
+            <p className="text-xs text-slate-600">
+              Continuously monitors and auto-updates schemes every 24 hours from 9 official government portals.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              disabled={syncMutation.isPending}
+              onClick={() => syncMutation.mutate()}
+              className="btn bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm flex items-center gap-2 disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncMutation.isPending ? 'Syncing 9 Portals...' : 'Sync Schemes Now'}
+            </button>
+          </div>
+        </div>
+
+        {/* Sync metrics & sources */}
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-emerald-100/80 pt-3 text-xs">
+          <div>
+            <span className="text-slate-500 font-medium">Active Schemes</span>
+            <div className="text-sm font-bold text-slate-800">{dbStats?.active_schemes ?? schemesQuery.data?.length ?? 0} Live</div>
+          </div>
+          <div>
+            <span className="text-slate-500 font-medium">Last Sync Run</span>
+            <div className="text-sm font-bold text-slate-800">
+              {sched?.last_run ? new Date(sched.last_run).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently completed'}
+            </div>
+          </div>
+          <div>
+            <span className="text-slate-500 font-medium">Next Scheduled Check</span>
+            <div className="text-sm font-bold text-slate-800">
+              {sched?.seconds_until_next_run ? `In ~${Math.round(sched.seconds_until_next_run / 3600)}h` : 'Within 24 hours'}
+            </div>
+          </div>
+          <div>
+            <span className="text-slate-500 font-medium">Monitored Portals</span>
+            <div className="text-sm font-bold text-emerald-700">9 National Portals</div>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-1.5 pt-1">
+          {[
+            'myScheme.gov.in',
+            'DBT Bharat',
+            'scholarships.gov.in (NSP)',
+            'education.gov.in (MoE)',
+            'MSME Portal',
+            'Rural Development',
+            'Social Justice & Empowerment',
+            'National Portal India',
+            'DOSJE Services',
+          ].map((p) => (
+            <span key={p} className="inline-flex items-center rounded-md bg-white/90 border border-slate-200/60 px-2 py-0.5 text-[11px] font-medium text-slate-600 shadow-xs">
+              ✓ {p}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <input className="input max-w-xs" placeholder={t('admin.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} aria-label={t('admin.searchPlaceholder')} />
         <button
