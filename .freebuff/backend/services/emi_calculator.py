@@ -8,7 +8,7 @@ All figures are estimates.
 import math
 
 DISCLAIMER = (
-    "SakshamAI provides informational scheme matching and financial estimates based on "
+    "Scheme Up provides informational scheme matching and financial estimates based on "
     "configured scheme rules. Final eligibility, sanction, interest terms and loan approval "
     "are determined by the authorized implementing agency or Channel Partner according to "
     "applicable guidelines."

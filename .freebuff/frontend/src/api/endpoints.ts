@@ -131,9 +131,6 @@ export const adminApi = {
   createScheme: (payload: Record<string, unknown>) => api.post<Scheme>('/admin/schemes', payload),
   updateScheme: (id: number, payload: Record<string, unknown>) => api.put<Scheme>(`/admin/schemes/${id}`, payload),
   deleteScheme: (id: number) => api.delete<{ message: string }>(`/admin/schemes/${id}`),
-  triggerScraper: () =>
-    api.post<{ message: string; result: Record<string, unknown>; scheduler_status: Record<string, unknown> }>('/admin/scrape-schemes'),
-  scraperStatus: () => api.get<ScraperStatusResponse>('/admin/scraper-status'),
   createPartner: (payload: Record<string, unknown>) => api.post<Partner>('/admin/partners', payload),
   updatePartner: (id: number, payload: Record<string, unknown>) => api.put<Partner>(`/admin/partners/${id}`, payload),
   deletePartner: (id: number) => api.delete<{ message: string }>(`/admin/partners/${id}`),
@@ -232,29 +229,5 @@ export interface SystemOverview {
     dialect: string
     latency_ms: number | null
     tables: Record<string, number | null>
-  }
-}
-
-export interface ScraperStatusResponse {
-  scheduler: {
-    is_active: boolean
-    status: string
-    interval_seconds: number
-    interval_hours: number
-    last_run: string | null
-    next_run: string | null
-    seconds_until_next_run: number | null
-    last_result: {
-      status?: string
-      scraped_count?: number
-      persisted_count?: number
-      timestamp?: string
-      detail?: string
-    }
-  }
-  database_stats: {
-    total_schemes: number
-    active_schemes: number
-    top_sponsoring_bodies: Array<{ name: string; count: number }>
   }
 }

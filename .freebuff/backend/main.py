@@ -1,4 +1,4 @@
-"""SakshamAI – FastAPI backend.
+"""Scheme Up – FastAPI backend.
 
 Run locally:
     uvicorn main:app --reload --port 8000
@@ -15,30 +15,28 @@ from pydantic import ValidationError
 
 from config import settings
 from database import Base, engine
-from routers import admin, applications, auth, calculator, dashboard, partners, public, recommendations, schemes, users
+from routers import admin, applications, assistant, auth, calculator, dashboard, partners, public, recommendations, schemes, users
 from seed import init_db
 
-from services.scheduler import scheduler
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-logger = logging.getLogger("sakshamai")
+logger = logging.getLogger("schemeup")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.environment == "production" and settings.jwt_secret.startswith("dev-only"):
+        raise RuntimeError(
+            "JWT_SECRET is still the development default. Set a strong secret before running in production."
+        )
     Base.metadata.create_all(bind=engine)
     init_db()
-    logger.info("SakshamAI database ready (%s)", settings.database_url.split("://")[0])
-    scheduler.start()
-    logger.info("24-Hour government schemes auto-sync scheduler started")
+    logger.info("Scheme Up database ready (%s)", settings.database_url.split("://")[0])
     yield
-    scheduler.stop()
-    logger.info("24-Hour government schemes auto-sync scheduler stopped")
 
 
 app = FastAPI(
-    title="SakshamAI API",
-    description="AI-driven scheme matching for marginalized entrepreneurs.",
+    title="Scheme Up API",
+    description="AI-driven government scheme matching for entrepreneurs and students in India.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -52,6 +50,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Baseline browser security headers on every response."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy", "geolocation=(self), microphone=(self), camera=()"
+    )
+    return response
+
 app.include_router(public.router)
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -62,6 +73,7 @@ app.include_router(partners.router)
 app.include_router(applications.router)
 app.include_router(dashboard.router)
 app.include_router(admin.router)
+app.include_router(assistant.router)
 
 
 # ------------------------------------------------------------ error handling
@@ -98,4 +110,4 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 @app.get("/")
 def root():
-    return {"message": "SakshamAI API is running. See /docs for interactive documentation."}
+    return {"message": "Scheme Up API is running. See /docs for interactive documentation."}

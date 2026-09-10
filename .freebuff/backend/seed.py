@@ -20,7 +20,7 @@ from utils.security import hash_password
 _PARTNERS = [
     # (name, type, address, state, district, city, pincode, lat, lng, schemes idx, fund, status, npa)
     ("Gujarat State Finance Corporation", "SCA", "Sector 10, Gandhinagar", "Gujarat", "Gandhinagar", "Gandhinagar", "382010", 23.2156, 72.6369, [0, 1, 3, 4], 55.0, "available", "none"),
-    ("Saksham Gujarat SCA – Ahmedabad", "SCA", "Ashram Road, Ahmedabad", "Gujarat", "Ahmedabad", "Ahmedabad", "380009", 23.0225, 72.5714, [0, 1, 3, 4], 61.0, "available", "none"),
+    ("Sujala Gujarat SCA – Ahmedabad", "SCA", "Ashram Road, Ahmedabad", "Gujarat", "Ahmedabad", "Ahmedabad", "380009", 23.0225, 72.5714, [0, 1, 3, 4], 61.0, "available", "none"),
     ("Maharashtra State Finance Agency", "SCA", "Nariman Point, Mumbai", "Maharashtra", "Mumbai City", "Mumbai", "400021", 19.0760, 72.8777, [0, 1, 3], 68.0, "available", "none"),
     ("Karnataka State Channelizing Agency", "SCA", "MG Road, Bengaluru", "Karnataka", "Bengaluru Urban", "Bengaluru", "560001", 12.9716, 77.5946, [0, 1, 2], 74.0, "limited", "none"),
     ("Tamil Nadu State Credit Agency", "SCA", "Anna Salai, Chennai", "Tamil Nadu", "Chennai", "Chennai", "600002", 13.0827, 80.2707, [1, 2], 61.0, "available", "none"),
@@ -46,11 +46,35 @@ _PARTNERS = [
 
 
 def seed_partners(db: Session, schemes: list[Scheme]) -> list[Partner]:
+    # Partner-type -> application_mode keywords for realistic scheme support:
+    # SCAs process SCA-offline schemes, banks process bank/online ones, etc.
+    _TYPE_MODE_HINTS = {
+        "SCA": ("SCA", "AGENCY", "SINGLE_WINDOW", "HYBRID"),
+        "PSB": ("BANK", "ONLINE", "MEMBER_LENDING", "CO_LENDING"),
+        "RRB": ("SCA", "BANK", "HYBRID", "PARTICIPATING"),
+        "NBFC-MFI": ("MFI", "NBFC", "PARTICIPATING", "CO_LENDING", "SINGLE_WINDOW", "HYBRID"),
+    }
+
+    def supported_for(partner_type: str) -> list[Scheme]:
+        hints = _TYPE_MODE_HINTS.get(partner_type, ())
+        chosen = []
+        for s in schemes:
+            mode = (s.application_mode or "").upper()
+            if hints and any(h in mode for h in hints):
+                chosen.append(s)
+        # Always keep at least the SCA-style schemes so no partner is empty
+        if not chosen:
+            chosen = [s for s in schemes if "SCA" in (s.application_mode or "").upper()]
+        return chosen
+
     partners = []
     for row in _PARTNERS:
         name = row[0]
         existing = db.query(Partner).filter(Partner.name == name).first()
         if existing:
+            # Keep demo partner links in sync with the catalogue (idempotent).
+            existing.supported_schemes = supported_for(existing.partner_type)
+            db.add(existing)
             partners.append(existing)
             continue
         partner = Partner(
@@ -65,13 +89,13 @@ def seed_partners(db: Session, schemes: list[Scheme]) -> list[Partner]:
             longitude=row[8],
             contact_person=f"Manager, {row[1]}",
             phone=f"+91 79 0000 {1000 + len(partners)}",
-            email=f"contact{len(partners) + 1}@demo.saksham.in",
+            email=f"contact{len(partners) + 1}@demo.schemeup.in",
             fund_utilization_percent=row[10],
             processing_status=row[11],
             npa_indicator=row[12],
             is_demo=True,
         )
-        partner.supported_schemes = [schemes[i] for i in row[9]]
+        partner.supported_schemes = supported_for(row[1])
         db.add(partner)
         partners.append(partner)
     db.commit()
@@ -114,9 +138,15 @@ def seed_users(db: Session) -> dict:
 
 
 def seed_activity(db: Session, users: dict, schemes: list[Scheme], partners: list[Partner]) -> None:
-    # A sample recommendation for the demo entrepreneur
+    # A sample recommendation for the demo entrepreneur.
+    # Regenerate when it is missing OR when it references a scheme that is no
+    # longer active (e.g. stale demo data from an older catalogue state).
     has_rec = db.query(Recommendation).filter(Recommendation.user_id == users["rahul"].id).first()
-    if not has_rec:
+    rec_is_valid = False
+    if has_rec and has_rec.recommended_scheme_id:
+        rec_scheme = db.get(Scheme, has_rec.recommended_scheme_id)
+        rec_is_valid = bool(rec_scheme and rec_scheme.active)
+    if not rec_is_valid:
         generate_recommendation(
             db,
             {
@@ -170,4 +200,4 @@ def init_db() -> None:
 
 if __name__ == "__main__":
     init_db()
-    print("SakshamAI demo database seeded.")
+    print("Scheme Up demo database seeded.")

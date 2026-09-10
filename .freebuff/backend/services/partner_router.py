@@ -74,9 +74,23 @@ def recommend_partners(
     if partner_type:
         partners = [p for p in partners if p.partner_type == partner_type]
     # Without coordinates, prefer partners in the user's district, then state.
+    # When a scheme is selected, prefer partners that actually support it so a
+    # nearby-but-unsupported partner never starves the results.
     if latitude is None and district:
         in_district = [p for p in partners if p.district == district]
-        if in_district:
+        if scheme_id:
+            supporting_in_district = [p for p in in_district if scheme_id in {s.id for s in p.supported_schemes}]
+            supporting_in_state = [
+                p for p in partners
+                if p.state == (state or p.state) and scheme_id in {s.id for s in p.supported_schemes}
+            ]
+            if supporting_in_district:
+                partners = supporting_in_district
+            elif supporting_in_state:
+                partners = supporting_in_state
+            elif in_district:
+                partners = in_district
+        elif in_district:
             partners = in_district
 
     ranked, excluded = [], []
