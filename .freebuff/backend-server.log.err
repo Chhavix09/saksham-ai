@@ -1,0 +1,5 @@
+INFO:     Started server process [10032]
+INFO:     Waiting for application startup.
+2026-09-10 01:30:56,932 INFO sakshamai: SakshamAI database ready (sqlite)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)

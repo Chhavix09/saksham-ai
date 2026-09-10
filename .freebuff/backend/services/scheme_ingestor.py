@@ -94,12 +94,80 @@ def _ensure_columns(db: Session) -> None:
     db.commit()
 
 
+def _backfill_legacy_rows(db: Session) -> None:
+    """Populate canonical columns for pre-existing demo rows that predate them.
+
+    Legacy demo schemes are kept (never deleted) but marked inactive once the
+    canonical catalogue is loaded. Their NULL canonical columns are derived from
+    the legacy display fields so API serialization never crashes.
+    """
+    legacy = db.query(Scheme).filter(Scheme.scheme_code.is_(None)).all()
+    for scheme in legacy:
+        changed = False
+        if not scheme.name:
+            scheme.name = scheme.scheme_name or "Untitled Scheme"
+            changed = True
+        if not scheme.sponsoring_body:
+            scheme.sponsoring_body = "Demo catalogue"
+            changed = True
+        if scheme.target_categories is None:
+            scheme.target_categories = []
+            changed = True
+        if scheme.min_income is None:
+            scheme.min_income = float(scheme.minimum_income or 0)
+            changed = True
+        if scheme.max_income is None:
+            scheme.max_income = float(scheme.maximum_income or 0)
+            changed = True
+        if scheme.min_project_cost is None:
+            scheme.min_project_cost = float(scheme.minimum_loan or 0)
+            changed = True
+        if scheme.max_project_cost is None:
+            margin = scheme.margin_percentage or 0
+            base = float(scheme.maximum_loan or 0)
+            scheme.max_project_cost = round(base * 100.0 / (100.0 - margin), 2) if margin < 100 else base
+            changed = True
+        if scheme.loan_percentage is None:
+            scheme.loan_percentage = max(0.0, 100.0 - (scheme.margin_percentage or 0))
+            changed = True
+        if scheme.interest_rate_min is None:
+            scheme.interest_rate_min = scheme.interest_rate or 0.0
+            changed = True
+        if scheme.interest_rate_max is None:
+            scheme.interest_rate_max = scheme.interest_rate or 0.0
+            changed = True
+        if scheme.tenure_years is None:
+            scheme.tenure_years = round((scheme.maximum_tenure_months or 0) / 12.0, 2)
+            changed = True
+        if scheme.eligible_activities is None:
+            scheme.eligible_activities = [str(p).upper() for p in (scheme.eligible_purposes or [])]
+            changed = True
+        if scheme.required_documents is None:
+            scheme.required_documents = []
+            changed = True
+        if scheme.application_mode is None:
+            scheme.application_mode = ""
+            changed = True
+        if scheme.application_url is None:
+            scheme.application_url = ""
+            changed = True
+        if scheme.extra_attributes is None:
+            scheme.extra_attributes = {}
+            changed = True
+        if changed:
+            scheme.active = False
+            db.add(scheme)
+    if legacy:
+        db.commit()
+
+
 def load_schemes_from_json(db: Session) -> list[Scheme]:
     _ensure_columns(db)
     records = json.loads(SCHEMES_PATH.read_text(encoding="utf-8"))
     if not isinstance(records, list):
         raise ValueError("schemes.json must contain a list of scheme objects")
 
+    _backfill_legacy_rows(db)
     db.query(Scheme).filter(Scheme.scheme_code.is_(None)).update({Scheme.active: False}, synchronize_session=False)
     loaded = []
     for record in records:

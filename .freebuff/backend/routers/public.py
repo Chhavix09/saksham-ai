@@ -14,7 +14,7 @@ LANGUAGES = ["en", "hi", "gu", "mr", "bn", "ta", "te", "kn"]
 
 @router.get("/health")
 def health():
-    return {"status": "ok", "service": "SakshamAI API"}
+    return {"status": "ok", "service": "Scheme Up API"}
 
 
 @router.get("/public/stats")
@@ -37,6 +37,6 @@ def public_config(db: Session = Depends(get_db)):
         "partner_weights": get_config(db, "partner_weights"),
         "disclaimer": get_config(db, "disclaimer") or DISCLAIMER,
         "languages": LANGUAGES,
-        "app_name": "SakshamAI",
+        "app_name": "Scheme Up",
         "tagline": "Find the Right Scheme. Start the Right Journey.",
     }

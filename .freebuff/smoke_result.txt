@@ -1,0 +1,69 @@
+PASS health: 200 (expected 200)
+PASS public/stats: 200 (expected 200)
+PASS public/config: 200 (expected 200)
+PASS schemes list: 200 (expected 200)
+   -> 34 schemes
+PASS scheme detail: 200 (expected 200)
+PASS scheme 404: 404 (expected 404)
+PASS partners list: 200 (expected 200)
+PASS partners recommend: 200 (expected 200)
+PASS partners nearby: 200 (expected 200)
+PASS partners nearby missing coords 422: 422 (expected 422)
+PASS calculator emi: 200 (expected 200)
+   -> EMI=19523.23
+PASS calculator invalid loan 422: 422 (expected 422)
+PASS calculator scheme: 200 (expected 200)
+PASS recommendation guest: 200 (expected 200)
+   -> recommended: Credit Guarantee Fund Scheme for Micro and Small Enterprises (CGS-I) score=100.0
+   -> explanation items: 7, next_steps: 4
+PASS register: 200 (expected 200)
+PASS login: 200 (expected 200)
+PASS login wrong password 401: 401 (expected 401)
+PASS auth/me: 200 (expected 200)
+PASS auth/me no token 401: 401 (expected 401)
+PASS users/me update: 200 (expected 200)
+PASS saved schemes empty: 200 (expected 200)
+PASS save scheme: 200 (expected 200)
+PASS saved schemes 1: 200 (expected 200)
+   -> saved list has 1 scheme(s)
+PASS unsave scheme: 200 (expected 200)
+PASS recommendation user education: 200 (expected 200)
+PASS recommendation latest: 200 (expected 200)
+PASS create application: 200 (expected 200)
+PASS list applications: 200 (expected 200)
+PASS update application status: 200 (expected 200)
+PASS invalid status 422: 422 (expected 422)
+PASS dashboard: 200 (expected 200)
+PASS admin analytics as non-admin 403: 403 (expected 403)
+PASS admin create scheme as non-admin 403: 403 (expected 403)
+PASS admin login: 200 (expected 200)
+PASS admin analytics: 200 (expected 200)
+PASS admin audit logs: 200 (expected 200)
+PASS admin config: 200 (expected 200)
+PASS admin create scheme: 200 (expected 200)
+PASS admin delete scheme: 200 (expected 200)
+PASS assistant status: 200 (expected 200)
+   -> AI provider: gemini (enabled=True)
+PASS assistant chat (guest): 200 (expected 200)
+   -> reply: Welcome to Scheme Up! We offer several government-backed loan schemes for starting or expanding a bu...
+   -> suggestions: ['How much EMI would I pay?', 'How do I find a Channel Partner near me?', 'What documents do I need to apply?']
+PASS assistant chat scheme search: 200 (expected 200)
+   -> topic: schemes, context: ['schemes', 'engine_weights']
+PASS assistant chat partners: 200 (expected 200)
+PASS assistant chat off-topic guard: 200 (expected 200)
+   -> topic: off_topic
+PASS assistant chat empty 422: 422 (expected 422)
+PASS assistant chat with user context: 200 (expected 200)
+   -> context keys: ['user', 'schemes', 'engine_weights']
+PASS admin users list: 200 (expected 200)
+   -> 18 users total
+   -> row fields ok: True
+PASS admin users search no match: 200 (expected 200)
+   -> filtered total: 0
+PASS admin system overview: 200 (expected 200)
+   -> users=18 growth_weeks=8 chats=51 db=sqlite
+PASS admin status unknown user 404: 404 (expected 404)
+PASS admin status invalid body 422: 422 (expected 422)
+
+ALL PASS
+DONE:0
