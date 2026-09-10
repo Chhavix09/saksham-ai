@@ -9,6 +9,8 @@ from models.user import User
 from schemas.partner import PartnerIn
 from schemas.scheme import SchemeIn, SchemeOut
 from services.config_service import get_config, set_config
+from services.scheduler import scheduler
+from services.scheme_scraper import scrape_schemes, upsert_scraped_schemes
 from utils.security import get_current_user
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -119,6 +121,50 @@ def delete_scheme(scheme_id: int, db: Session = Depends(get_db), user: User = De
     db.commit()
     _audit(db, user, "scheme.delete", "scheme", scheme_id, {"name": scheme.scheme_name})
     return {"message": "Scheme deleted."}
+
+
+@router.post("/scrape-schemes")
+async def trigger_scheme_scraper(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required.")
+
+    try:
+        result = await scheduler.execute_sync()
+        _audit(db, user, "schemes.scraped", "scheduler", "", result)
+        return {
+            "message": "Government scheme scrape and database sync completed.",
+            "result": result,
+            "scheduler_status": scheduler.get_status(),
+        }
+    except Exception as exc:  # pragma: no cover - defensive admin endpoint guard
+        raise HTTPException(status_code=500, detail=f"Scheme scraping failed: {exc}")
+
+
+@router.get("/scraper-status")
+def get_scraper_status(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required.")
+
+    status = scheduler.get_status()
+    total_schemes = db.query(func.count(Scheme.id)).scalar() or 0
+    active_schemes = db.query(func.count(Scheme.id)).filter(Scheme.active.is_(True)).scalar() or 0
+    portal_counts = (
+        db.query(Scheme.sponsoring_body, func.count(Scheme.id))
+        .filter(Scheme.active.is_(True))
+        .group_by(Scheme.sponsoring_body)
+        .order_by(func.count(Scheme.id).desc())
+        .limit(10)
+        .all()
+    )
+
+    return {
+        "scheduler": status,
+        "database_stats": {
+            "total_schemes": total_schemes,
+            "active_schemes": active_schemes,
+            "top_sponsoring_bodies": [{"name": body, "count": cnt} for body, cnt in portal_counts],
+        },
+    }
 
 
 # ------------------------------------------------------------------ partners

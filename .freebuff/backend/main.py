@@ -18,6 +18,8 @@ from database import Base, engine
 from routers import admin, applications, auth, calculator, dashboard, partners, public, recommendations, schemes, users
 from seed import init_db
 
+from services.scheduler import scheduler
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("sakshamai")
 
@@ -27,7 +29,11 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     init_db()
     logger.info("SakshamAI database ready (%s)", settings.database_url.split("://")[0])
+    scheduler.start()
+    logger.info("24-Hour government schemes auto-sync scheduler started")
     yield
+    scheduler.stop()
+    logger.info("24-Hour government schemes auto-sync scheduler stopped")
 
 
 app = FastAPI(
